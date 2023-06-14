@@ -16,6 +16,7 @@
   <depend>sensor_msgs</depend>
   <depend>crazyflie_interfaces</depend>
   <depend>geometry_msgs</depend>
+  <depend>webots_ros2_driver</depend>
   <depend>motion_capture_tracking_interfaces</depend>
 
   <exec_depend>tf_transformations</exec_depend>

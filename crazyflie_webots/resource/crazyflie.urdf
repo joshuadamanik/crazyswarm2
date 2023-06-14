@@ -1,0 +1,7 @@
+<?xml version="1.0" ?>
+<robot name="crazyflie">
+    <webots>
+        <plugin type="crazyflie_webots.crazyflie_driver.CrazyflieDriver" />
+    </webots>
+
+</robot>

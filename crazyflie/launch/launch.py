@@ -1,4 +1,5 @@
 import os
+import pathlib
 import yaml
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
@@ -6,7 +7,11 @@ from launch.actions import DeclareLaunchArgument
 from launch_ros.actions import Node
 from launch.conditions import LaunchConfigurationEquals
 from launch.conditions import LaunchConfigurationNotEquals
+from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration, PythonExpression
+
+from webots_ros2_driver.webots_launcher import WebotsLauncher
+from webots_ros2_driver.utils import controller_url_prefix
 
 
 def generate_launch_description():
@@ -59,6 +64,9 @@ def generate_launch_description():
         'config',
         'teleop.yaml')
 
+    sim_backend = server_yaml_contents["/crazyflie_server"]["ros__parameters"]["sim"]["backend"]
+    webots_robot_description = pathlib.Path(os.path.join(get_package_share_directory('crazyflie_webots'), 'resource', 'crazyflie.urdf')).read_text()
+
     return LaunchDescription([
         DeclareLaunchArgument('backend', default_value='cpp'),
         DeclareLaunchArgument('debug', default_value='False'),
@@ -106,10 +114,24 @@ def generate_launch_description():
             parameters=server_params,
             prefix=PythonExpression(['"xterm -e gdb -ex run --args" if ', LaunchConfiguration('debug'), ' else ""']),
         ),
+        WebotsLauncher(
+            world=os.path.join(get_package_share_directory('crazyflie_webots'), 'worlds', 'crazyflie.wbt'),
+            condition=LaunchConfigurationEquals('backend','sim') and IfCondition(PythonExpression(['"', sim_backend, '" == "webots"'])),
+        ),
+        Node(
+            package='webots_ros2_driver',
+            executable='driver',
+            output='screen',
+            additional_env={'WEBOTS_CONTROLLER_URL': controller_url_prefix() + 'crazyflie'},
+            condition=LaunchConfigurationEquals('backend','sim') and IfCondition(PythonExpression(['"', sim_backend, '" == "webots"'])),
+            parameters=[{
+                'robot_description': webots_robot_description,
+            }],
+        ),
         Node(
             package='crazyflie_sim',
             executable='crazyflie_server',
-            condition=LaunchConfigurationEquals('backend','sim'),
+            condition=LaunchConfigurationEquals('backend', 'sim'),
             name='crazyflie_server',
             output='screen',
             emulate_tty=True,
